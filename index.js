@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 1. Inicialización de la Base de Datos
-const db = new sqlite3.Database('./historial_precios.db');
+const db = new sqlite3.Database('/app/data/historial_precios.db');
 
 db.run(`CREATE TABLE IF NOT EXISTS precios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
