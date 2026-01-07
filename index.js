@@ -10,15 +10,27 @@ const BINANCE_P2P_URL = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/se
 async function getBCV() {
     try {
         const { data } = await axios.get('https://www.bcv.org.ve/', {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            timeout: 10000
+            headers: { 
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+                'Accept': 'text/html'
+            },
+            httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }), // Ignora errores de certificado si los hay
+            timeout: 15000
         });
         const $ = cheerio.load(data);
+        
+        // Selectores específicos por ID
+        const usd = $('#dolar strong').text().trim().replace(',', '.');
+        const eur = $('#euro strong').text().trim().replace(',', '.');
+
         return {
-            usd: parseFloat($('#dolar strong').text().replace(',', '.')),
-            eur: parseFloat($('#euro strong').text().replace(',', '.'))
+            usd: parseFloat(usd) || 0,
+            eur: parseFloat(eur) || 0
         };
-    } catch (e) { return { usd: 0, eur: 0 }; }
+    } catch (e) { 
+        console.error("Error en BCV:", e.message);
+        return { usd: 0, eur: 0 }; 
+    }
 }
 
 async function getBinance() {
