@@ -9,7 +9,10 @@ const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const cors = require('cors');
+const app = express();
 
+app.use(cors());
 // --- CONFIGURACIÓN DE PERSISTENCIA ---
 // Aseguramos que el directorio /app/data exista para evitar SQLITE_CANTOPEN
 const dbDir = '/app/data';
