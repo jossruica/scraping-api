@@ -45,7 +45,7 @@ app.get('/tasas', async (req, res) => {
     });
 });
 
-app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor esta corriendo en el puerto ${PORT}`));
 //Cambio 2121 asas
 
 
