@@ -6,15 +6,15 @@ const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const cors = require('cors'); // 1. Importas cors una sola vez
 
-const app = express();
+const app = express(); // 2. Declaras app una sola vez
 const PORT = process.env.PORT || 3000;
-const cors = require('cors');
-const app = express();
 
-app.use(cors());
+// 3. Activas CORS antes de cualquier ruta
+app.use(cors()); 
+
 // --- CONFIGURACIÓN DE PERSISTENCIA ---
-// Aseguramos que el directorio /app/data exista para evitar SQLITE_CANTOPEN
 const dbDir = '/app/data';
 if (!fs.existsSync(dbDir)) {
     console.log("📁 Creando directorio para base de datos...");
@@ -23,7 +23,6 @@ if (!fs.existsSync(dbDir)) {
 
 const dbPath = path.join(dbDir, 'historial_precios.db');
 
-// Inicializamos la DB con manejo de errores
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error("❌ Error fatal al abrir la base de datos:", err.message);
@@ -32,7 +31,6 @@ const db = new sqlite3.Database(dbPath, (err) => {
     }
 });
 
-// Crear tabla historial si no existe
 db.run(`CREATE TABLE IF NOT EXISTS precios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     bcv_usd REAL,
@@ -58,10 +56,7 @@ async function getBCV() {
         const $ = cheerio.load(data);
         const usd = $('#dolar strong').text().trim().replace(',', '.');
         const eur = $('#euro strong').text().trim().replace(',', '.');
-        return { 
-            usd: parseFloat(usd) || 0, 
-            eur: parseFloat(eur) || 0 
-        };
+        return { usd: parseFloat(usd) || 0, eur: parseFloat(eur) || 0 };
     } catch (e) {
         console.error("⚠️ Error BCV:", e.message);
         return { usd: 0, eur: 0 };
@@ -86,13 +81,11 @@ async function getBinance() {
 }
 
 // --- TAREAS PROGRAMADAS ---
-// Guardar historial cada hora (minuto 0 de cada hora)
 cron.schedule('0 * * * *', async () => {
     console.log("🕒 Iniciando guardado de historial horario...");
     const bcv = await getBCV();
     const binance = await getBinance();
     
-    // Solo guardamos si tenemos datos válidos
     if (bcv.usd > 0 && binance > 0) {
         db.run(
             `INSERT INTO precios (bcv_usd, bcv_eur, binance_ves) VALUES (?, ?, ?)`, 
@@ -102,19 +95,14 @@ cron.schedule('0 * * * *', async () => {
                 else console.log("💾 Historial guardado con éxito.");
             }
         );
-    } else {
-        console.log("🚫 Datos incompletos, se saltó el guardado.");
     }
 });
 
 // --- ENDPOINTS ---
-
-// 1. Root - Estado del servidor
 app.get('/', (req, res) => {
-    res.send('✅ Venecambios API Online. Endpoints: /tasas, /historial');
+    res.send('✅ Dolar REF API Online. Endpoints: /tasas, /historial');
 });
 
-// 2. Tasas actuales (Tiempo Real)
 app.get('/tasas', async (req, res) => {
     const bcv = await getBCV();
     const binance = await getBinance();
@@ -126,15 +114,14 @@ app.get('/tasas', async (req, res) => {
     });
 });
 
-// 3. Historial (Últimas 168 horas / 7 días)
 app.get('/historial', (req, res) => {
     db.all(`SELECT * FROM precios ORDER BY fecha DESC LIMIT 168`, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json(rows.reverse()); // Orden cronológico para gráficas
+        res.json(rows.reverse());
     });
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
     console.log(`📂 Base de datos en: ${dbPath}`);
 });
